@@ -2,18 +2,16 @@ package main
 
 import (
 	"encoding/json"
-	"log"
+	"io/ioutil"
 	"net"
 	"net/http"
 )
 
 func block(writer http.ResponseWriter, request *http.Request) {
-	decoder := json.NewDecoder(request.Body)
+	bytes, _ := ioutil.ReadAll(request.Body)
 
 	var input Request
-
-	err := decoder.Decode(&input)
-	if err != nil {
+	if err := json.Unmarshal(bytes, &input); err != nil {
 		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
@@ -21,7 +19,6 @@ func block(writer http.ResponseWriter, request *http.Request) {
 	ip := net.ParseIP(input.IP)
 	response, err := db.Country(ip)
 	if err != nil {
-		log.Println(err.Error())
 		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
@@ -39,9 +36,10 @@ func block(writer http.ResponseWriter, request *http.Request) {
 		resp = Body{Action: "BLOCK"}
 	}
 
-	if err := json.NewEncoder(writer).Encode(resp); err != nil {
+	if responseBytes, err := json.Marshal(resp); err != nil {
 		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	} else {
 		writer.Header().Set("Content-Type", "application/json")
+		writer.Write(responseBytes)
 	}
 }
