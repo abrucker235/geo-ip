@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geo-ip-block
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: geo-ip-block
+    spec:
+      containers:
+      - name: geo-ip-block
+        image: registry/geo-ip-block:latest
+        ports:
+        - containerPort: 8080
+        imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: geo-ip-block
+spec:
+  ports:
+  - port: 8080
+    protocols: TCP
+    targetPort: 8080
+  selector:
+    app: geo-ip-block
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: geo-ip-block-ingress
+spec:
+  rules:
+  - host: geo-ip-block.clusterdomain
+    http:
+      paths:
+      - backend:
+          serviceName: geo-ip-block
+          servicePort: 8080
+        path: /
